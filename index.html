@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>超級點點樂！</title>
+    <title>超級點點樂 2.0</title>
     <style>
         :root {
             --player1-bg: #4a90e2;
@@ -11,24 +11,21 @@
             --text-color: #ffffff;
             --font-family: 'Arial', 'Microsoft JhengHei', sans-serif;
         }
-
         body {
             font-family: var(--font-family);
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #333;
+            background-color: #2c2c2c;
             color: var(--text-color);
             text-align: center;
         }
-
         .game-container {
             display: flex;
             width: 100vw;
             height: 100vh;
             position: relative;
         }
-
         .player-zone {
             flex: 1;
             display: flex;
@@ -36,30 +33,42 @@
             justify-content: center;
             align-items: center;
             font-size: 2rem;
-            transition: transform 0.1s ease;
-            user-select: none; /* 防止文字被選取 */
+            transition: background-color 0.3s ease;
+            user-select: none;
             -webkit-user-select: none;
-            -ms-user-select: none;
-            cursor: pointer;
+            position: relative;
+            overflow: hidden; /* For click effect */
         }
-
         #player1-zone { background-color: var(--player1-bg); }
         #player2-zone { background-color: var(--player2-bg); }
-
-        .player-zone:active {
-            transform: scale(0.98);
-        }
-
+        
         .score {
             font-size: 5rem;
             font-weight: bold;
-            margin-top: 20px;
-            text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            margin-top: 10px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
         }
-        
         .player-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        /* 新增：即時狀態訊息 */
+        .status-message {
+            position: absolute;
+            bottom: 50px;
             font-size: 1.5rem;
             font-weight: bold;
+            padding: 8px 16px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.5s, transform 0.5s;
+            transform: translateY(20px);
+        }
+        .status-message.show {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .game-controls {
@@ -67,24 +76,22 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 30px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 25px;
             border-radius: 20px;
             z-index: 10;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            width: 90%;
+            max-width: 500px;
         }
-        
-        .game-controls.hidden {
-            display: none;
-        }
-
+        .game-controls.hidden { display: none; }
         #start-btn, .control-btn, #play-again-btn {
-            padding: 15px 30px;
-            font-size: 1.5rem;
+            padding: 12px 25px;
+            font-size: 1.2rem;
             font-family: var(--font-family);
             font-weight: bold;
             border: none;
@@ -94,36 +101,43 @@
             color: white;
             transition: background-color 0.3s;
         }
-        #start-btn:hover, .control-btn:hover, #play-again-btn:hover {
-            background-color: #45a049;
+        #start-btn:hover, .control-btn:hover, #play-again-btn:hover { background-color: #45a049; }
+
+        /* 新增：玩家名稱輸入 */
+        .player-input-group {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: space-around;
         }
+        .player-input {
+            padding: 10px;
+            font-size: 1rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            width: 40%;
+        }
+        #player1-name-input { border-color: var(--player1-bg); }
+        #player2-name-input { border-color: var(--player2-bg); }
 
         .timer-setup {
             display: flex;
             align-items: center;
             gap: 15px;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
         }
-
         .control-btn {
-            font-size: 1.8rem;
-            width: 50px;
-            height: 50px;
+            font-size: 1.5rem;
+            width: 45px;
+            height: 45px;
             padding: 0;
-            line-height: 50px;
+            line-height: 45px;
             text-align: center;
             background-color: #e27d4a;
         }
-        .control-btn:hover {
-            background-color: #d16c39;
-        }
+        .control-btn:hover { background-color: #d16c39; }
         
-        #game-time-setting {
-            width: 80px;
-            text-align: center;
-            font-weight: bold;
-        }
-
         #timer-display {
             position: absolute;
             top: 20px;
@@ -137,12 +151,7 @@
             z-index: 5;
             transition: transform 0.2s, color 0.2s;
         }
-
-        .countdown-animation {
-            animation: pulse 1s infinite;
-            color: #ff4d4d !important;
-        }
-
+        .countdown-animation { animation: pulse 1s infinite; color: #ff4d4d !important; }
         @keyframes pulse {
             0% { transform: scale(1) translateX(-50%); }
             50% { transform: scale(1.2) translateX(-50%); }
@@ -150,94 +159,90 @@
         }
 
         #end-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.85);
-            z-index: 20;
-            display: none; /* Changed from flex to none */
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: white;
-            opacity: 0;
+            z-index: 20; display: none; justify-content: center; align-items: center;
+            flex-direction: column; color: white; opacity: 0;
             transition: opacity 0.5s ease-in-out;
         }
+        #end-screen.visible { display: flex; opacity: 1; }
+        #result-message { font-size: 3rem; font-weight: bold; margin-bottom: 10px; }
+        #encouragement { font-size: 1.5rem; margin-bottom: 30px; padding: 0 20px; }
+        #final-scores { font-size: 2rem; margin-bottom: 40px; }
 
-        #end-screen.visible {
-            display: flex;
-            opacity: 1;
+        /* 新增：排行榜 */
+        #leaderboard {
+            width: 90%;
+            margin-top: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
         }
+        #leaderboard h3 { margin-top: 0; border-bottom: 1px solid #fff; padding-bottom: 5px;}
+        #leaderboard ol { padding-left: 25px; margin: 0; }
+        #leaderboard li { text-align: left; padding: 2px 0; font-size: 1rem;}
 
-        #result-message {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        #encouragement {
-            font-size: 1.5rem;
-            margin-bottom: 30px;
-            padding: 0 20px;
-        }
-        
-        #final-scores {
-            font-size: 2rem;
-            margin-bottom: 40px;
-        }
-
-        /* 慶祝動畫 */
-        .confetti {
+        /* 新增：點擊動畫 */
+        .click-effect {
             position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: #f00;
-            opacity: 0.8;
             border-radius: 50%;
-            animation: fall 3s linear forwards;
+            background: rgba(255, 255, 255, 0.7);
+            transform: scale(0);
+            animation: ripple 0.5s linear;
+            pointer-events: none; /* So it doesn't interfere with clicks */
         }
-
-        @keyframes fall {
+        @keyframes ripple {
             to {
-                transform: translateY(100vh) rotate(720deg);
+                transform: scale(4);
                 opacity: 0;
             }
         }
 
+        /* 慶祝動畫 */
+        .confetti {
+            position: absolute; width: 10px; height: 10px;
+            background-color: #f00; opacity: 0.8; border-radius: 50%;
+            animation: fall 3s linear forwards;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
     </style>
 </head>
 <body>
-
     <div class="game-container">
-        <!-- 玩家1區域 -->
         <div id="player1-zone" class="player-zone">
-            <div class="player-name">玩家一</div>
+            <div id="player1-name" class="player-name">玩家一</div>
             <div id="score1" class="score">0</div>
+            <div id="status1" class="status-message"></div>
         </div>
-        <!-- 玩家2區域 -->
         <div id="player2-zone" class="player-zone">
-            <div class="player-name">玩家二</div>
+            <div id="player2-name" class="player-name">玩家二</div>
             <div id="score2" class="score">0</div>
+            <div id="status2" class="status-message"></div>
         </div>
     </div>
 
-    <!-- 遊戲設定 -->
     <div id="game-controls" class="game-controls">
-        <h1>超級點點樂！</h1>
+        <h1>超級點點樂 2.0</h1>
+        <div class="player-input-group">
+            <input type="text" id="player1-name-input" class="player-input" placeholder="輸入玩家一名字" value="藍隊">
+            <input type="text" id="player2-name-input" class="player-input" placeholder="輸入玩家二名字" value="橘隊">
+        </div>
         <div class="timer-setup">
             <button id="decrease-time" class="control-btn">-</button>
             <div id="game-time-setting">60 秒</div>
             <button id="increase-time" class="control-btn">+</button>
         </div>
         <button id="start-btn">開始遊戲</button>
+        <div id="leaderboard">
+            <h3>🏆 最高分排行榜 🏆</h3>
+            <ol id="leaderboard-list"></ol>
+        </div>
     </div>
 
-    <!-- 遊戲中的計時器 -->
     <div id="timer-display"></div>
 
-    <!-- 遊戲結束畫面 -->
     <div id="end-screen">
         <div id="result-message"></div>
         <div id="final-scores"></div>
@@ -245,13 +250,22 @@
         <button id="play-again-btn">再玩一次</button>
     </div>
 
-
     <script>
         // --- DOM 元素 ---
-        const player1Zone = document.getElementById('player1-zone');
-        const player2Zone = document.getElementById('player2-zone');
-        const score1Display = document.getElementById('score1');
-        const score2Display = document.getElementById('score2');
+        const player1 = {
+            zone: document.getElementById('player1-zone'),
+            scoreDisplay: document.getElementById('score1'),
+            nameDisplay: document.getElementById('player1-name'),
+            nameInput: document.getElementById('player1-name-input'),
+            statusDisplay: document.getElementById('status1')
+        };
+        const player2 = {
+            zone: document.getElementById('player2-zone'),
+            scoreDisplay: document.getElementById('score2'),
+            nameDisplay: document.getElementById('player2-name'),
+            nameInput: document.getElementById('player2-name-input'),
+            statusDisplay: document.getElementById('status2')
+        };
         const gameControls = document.getElementById('game-controls');
         const startBtn = document.getElementById('start-btn');
         const timerDisplay = document.getElementById('timer-display');
@@ -263,189 +277,269 @@
         const increaseTimeBtn = document.getElementById('increase-time');
         const decreaseTimeBtn = document.getElementById('decrease-time');
         const gameTimeSettingDisplay = document.getElementById('game-time-setting');
+        const leaderboardList = document.getElementById('leaderboard-list');
 
         // --- 遊戲狀態變數 ---
-        let score1 = 0;
-        let score2 = 0;
-        let gameTime = 60; // 預設遊戲時間 (秒)
-        let timeLeft = 0;
-        let timerInterval = null;
+        let score1 = 0, score2 = 0;
+        let player1Name = '玩家一', player2Name = '玩家二';
+        let gameTime = 60, timeLeft = 0, timerInterval = null;
         let isGameActive = false;
-        
+
         // --- 音效處理 ---
         let audioContext;
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        } catch (e) {
-            console.error("Web Audio API is not supported in this browser");
-        }
+        } catch (e) { console.error("Web Audio API is not supported in this browser"); }
 
-        function playSound(type) {
+        function playSound(type, freq = 440, duration = 0.3) {
             if (!audioContext) return;
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
 
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            let vol = 0.1;
+            if(type === 'click') vol = 0.05;
 
-            if (type === 'countdown') {
-                oscillator.type = 'triangle';
-                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
-                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.3);
-            } else if (type === 'end') {
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
-                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.8);
-            } else if (type === 'start') {
-                oscillator.type = 'square';
-                oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime); // C4
-                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
-            }
+            gainNode.gain.setValueAtTime(vol, audioContext.currentTime);
+            oscillator.type = type === 'click' ? 'triangle' : 'sine';
+            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duration);
             
             oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 1);
+            oscillator.stop(audioContext.currentTime + duration);
         }
-        
+
         // --- 事件監聽 ---
         startBtn.addEventListener('click', startGame);
         playAgainBtn.addEventListener('click', resetGame);
         increaseTimeBtn.addEventListener('click', () => changeTime(5));
         decreaseTimeBtn.addEventListener('click', () => changeTime(-5));
-        
-        function handlePlayerClick(playerNumber) {
+
+        const handlePlayerClick = (playerNumber, event) => {
             if (!isGameActive) return;
+            
+            // 播放音效和動畫
+            playSound('click', playerNumber === 1 ? 880 : 987, 0.1); // 不同玩家不同音高
+            createClickEffect(event, playerNumber === 1 ? player1.zone : player2.zone);
+
             if (playerNumber === 1) {
                 score1++;
-                score1Display.textContent = score1;
+                player1.scoreDisplay.textContent = score1;
             } else {
                 score2++;
-                score2Display.textContent = score2;
+                player2.scoreDisplay.textContent = score2;
             }
-        }
-        
-        // 使用 touchstart 優先，以降低延遲，並用 mousedown 作為備用
-        player1Zone.addEventListener('touchstart', (e) => { e.preventDefault(); handlePlayerClick(1); });
-        player1Zone.addEventListener('mousedown', (e) => { e.preventDefault(); handlePlayerClick(1); });
-        player2Zone.addEventListener('touchstart', (e) => { e.preventDefault(); handlePlayerClick(2); });
-        player2Zone.addEventListener('mousedown', (e) => { e.preventDefault(); handlePlayerClick(2); });
+            updateInGameStatus();
+        };
 
+        player1.zone.addEventListener('touchstart', (e) => { e.preventDefault(); handlePlayerClick(1, e.touches[0]); });
+        player1.zone.addEventListener('mousedown', (e) => { e.preventDefault(); handlePlayerClick(1, e); });
+        player2.zone.addEventListener('touchstart', (e) => { e.preventDefault(); handlePlayerClick(2, e.touches[0]); });
+        player2.zone.addEventListener('mousedown', (e) => { e.preventDefault(); handlePlayerClick(2, e); });
 
         // --- 遊戲邏輯函式 ---
 
         function changeTime(seconds) {
             if (isGameActive) return;
-            gameTime += seconds;
-            if (gameTime < 10) gameTime = 10; // 最少10秒
-            if (gameTime > 300) gameTime = 300; // 最多5分鐘
-            updateGameTimeDisplay();
-        }
-
-        function updateGameTimeDisplay() {
+            gameTime = Math.max(10, Math.min(300, gameTime + seconds));
             gameTimeSettingDisplay.textContent = `${gameTime} 秒`;
+        }
+        
+        function getPlayerNames() {
+            player1Name = player1.nameInput.value.trim() || '藍隊';
+            player2Name = player2.nameInput.value.trim() || '橘隊';
+            player1.nameDisplay.textContent = player1Name;
+            player2.nameDisplay.textContent = player2Name;
         }
 
         function startGame() {
+            getPlayerNames();
             isGameActive = true;
             score1 = 0;
             score2 = 0;
             timeLeft = gameTime;
-
-            score1Display.textContent = 0;
-            score2Display.textContent = 0;
+            
+            player1.scoreDisplay.textContent = 0;
+            player2.scoreDisplay.textContent = 0;
             timerDisplay.textContent = timeLeft;
             timerDisplay.classList.remove('countdown-animation');
 
             gameControls.classList.add('hidden');
             timerDisplay.style.display = 'block';
-            playSound('start');
+            playSound('start', 261.63, 0.5); // C4
 
             timerInterval = setInterval(updateTimer, 1000);
+            updateInGameStatus(true); // 初始狀態
         }
 
         function updateTimer() {
             timeLeft--;
             timerDisplay.textContent = timeLeft;
-
             if (timeLeft <= 10 && timeLeft > 0) {
                 timerDisplay.classList.add('countdown-animation');
-                playSound('countdown');
+                playSound('countdown', 440, 0.3); // A4
             }
-
-            if (timeLeft <= 0) {
-                endGame();
-            }
+            if (timeLeft <= 0) endGame();
         }
 
         function endGame() {
             clearInterval(timerInterval);
             isGameActive = false;
-            playSound('end');
+            playSound('end', 523.25, 0.8); // C5
             
             timerDisplay.style.display = 'none';
             timerDisplay.classList.remove('countdown-animation');
+            hideStatusMessages();
 
-            let winnerMsg = '';
-            let encouragement = '';
-            let winnerPlayer = 0;
+            let winnerMsg, encouragement, winnerPlayer = 0, winnerName = '';
 
             const winMessages = ["太厲害了，你是冠軍！", "恭喜獲勝，真是神手速！", "贏了！下次再來挑戰！"];
             const loseMessages = ["雖敗猶榮，下次會更棒！", "別氣餒，你已經很努力了！", "加油！再挑戰一次吧！"];
             const tieMessages = ["平手！兩位都超強的！", "哇，真是勢均力敵！", "不分軒輊，再來一場！"];
             
             if (score1 > score2) {
-                winnerMsg = '玩家一 獲勝！';
                 winnerPlayer = 1;
-                encouragement = `${winMessages[Math.floor(Math.random() * winMessages.length)]}<br><br>玩家二也別灰心，${loseMessages[Math.floor(Math.random() * loseMessages.length)]}`;
+                winnerName = player1Name;
+                winnerMsg = `${player1Name} 獲勝！`;
+                encouragement = `${winMessages[Math.floor(Math.random() * winMessages.length)]}<br><br>${player2Name}也別灰心，${loseMessages[Math.floor(Math.random() * loseMessages.length)]}`;
+                saveScoreToLeaderboard(player1Name, score1);
             } else if (score2 > score1) {
-                winnerMsg = '玩家二 獲勝！';
                 winnerPlayer = 2;
-                encouragement = `${winMessages[Math.floor(Math.random() * winMessages.length)]}<br><br>玩家一也別灰心，${loseMessages[Math.floor(Math.random() * loseMessages.length)]}`;
+                winnerName = player2Name;
+                winnerMsg = `${player2Name} 獲勝！`;
+                encouragement = `${winMessages[Math.floor(Math.random() * winMessages.length)]}<br><br>${player1Name}也別灰心，${loseMessages[Math.floor(Math.random() * loseMessages.length)]}`;
+                saveScoreToLeaderboard(player2Name, score2);
             } else {
                 winnerMsg = '平手！';
                 encouragement = tieMessages[Math.floor(Math.random() * tieMessages.length)];
             }
             
             resultMessage.textContent = winnerMsg;
-            finalScoresDisplay.textContent = `玩家一: ${score1} 分 vs 玩家二: ${score2} 分`;
+            finalScoresDisplay.textContent = `${player1Name}: ${score1} 分 vs ${player2Name}: ${score2} 分`;
             encouragementDisplay.innerHTML = encouragement;
-
             endScreen.classList.add('visible');
 
-            if (winnerPlayer !== 0) {
-                showConfetti();
-            }
+            if (winnerPlayer !== 0) showConfetti(winnerPlayer);
         }
 
         function resetGame() {
             endScreen.classList.remove('visible');
             gameControls.classList.remove('hidden');
-            score1Display.textContent = 0;
-            score2Display.textContent = 0;
+            player1.scoreDisplay.textContent = 0;
+            player2.scoreDisplay.textContent = 0;
             timerDisplay.textContent = '';
+            displayLeaderboard(); // 遊戲結束後更新排行榜
+        }
+
+        // --- 新功能函式 ---
+        
+        function updateInGameStatus(isInitial = false) {
+            let p1Status = '', p2Status = '';
+            
+            if (isInitial || score1 === 0 && score2 === 0) {
+                 p1Status = '準備開始！'; p2Status = '準備開始！';
+            } else if (score1 > score2) {
+                p1Status = '領先！🎉'; p2Status = '加油！💪';
+            } else if (score2 > score1) {
+                p1Status = '加油！💪'; p2Status = '領先！🎉';
+            } else {
+                p1Status = '平手！😬'; p2Status = '平手！😬';
+            }
+            
+            player1.statusDisplay.textContent = p1Status;
+            player2.statusDisplay.textContent = p2Status;
+            player1.statusDisplay.classList.add('show');
+            player2.statusDisplay.classList.add('show');
+        }
+
+        function hideStatusMessages() {
+            player1.statusDisplay.classList.remove('show');
+            player2.statusDisplay.classList.remove('show');
+        }
+
+        function createClickEffect(event, parent) {
+            const rect = parent.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const effect = document.createElement('div');
+            effect.className = 'click-effect';
+            effect.style.left = `${x}px`;
+            effect.style.top = `${y}px`;
+            
+            const size = Math.max(parent.clientWidth, parent.clientHeight);
+            effect.style.width = `${size}px`;
+            effect.style.height = `${size}px`;
+
+            parent.appendChild(effect);
+            setTimeout(() => effect.remove(), 500);
         }
         
-        function showConfetti() {
+        function showConfetti(winnerSide) {
             for (let i = 0; i < 100; i++) {
                 const confetti = document.createElement('div');
                 confetti.className = 'confetti';
-                confetti.style.left = Math.random() * 100 + 'vw';
+                
+                // 根據贏家決定彩帶噴發位置
+                let startX = Math.random();
+                if (winnerSide === 1) startX *= 0.5; // 左半邊
+                if (winnerSide === 2) startX = startX * 0.5 + 0.5; // 右半邊
+                
+                confetti.style.left = startX * 100 + 'vw';
                 confetti.style.top = -20 + 'px';
-                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 65%)`;
                 confetti.style.animationDelay = Math.random() * 2 + 's';
-                confetti.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
+                confetti.style.transform = `scale(${Math.random() * 0.5 + 0.8})`;
                 document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 4000);
+            }
+        }
 
-                setTimeout(() => {
-                    confetti.remove();
-                }, 4000);
+        function loadLeaderboard() {
+            try {
+                const scores = JSON.parse(localStorage.getItem('clickerGameScores')) || [];
+                return scores;
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveScoreToLeaderboard(name, score) {
+            const scores = loadLeaderboard();
+            const date = new Date().toLocaleDateString();
+            scores.push({ name, score, date });
+            scores.sort((a, b) => b.score - a.score); // 分數由高到低排序
+            const topScores = scores.slice(0, 5); // 只保留前5名
+            try {
+                localStorage.setItem('clickerGameScores', JSON.stringify(topScores));
+            } catch (e) {
+                console.error("Failed to save to localStorage", e);
+            }
+        }
+
+        function displayLeaderboard() {
+            const scores = loadLeaderboard();
+            leaderboardList.innerHTML = '';
+            if (scores.length === 0) {
+                leaderboardList.innerHTML = '<li>還沒有紀錄，快來挑戰！</li>';
+            } else {
+                scores.forEach(s => {
+                    const li = document.createElement('li');
+                    li.textContent = `${s.name} - ${s.score}分 (於 ${s.date})`;
+                    leaderboardList.appendChild(li);
+                });
             }
         }
 
         // --- 初始化 ---
-        updateGameTimeDisplay(); // 初始顯示時間
-        timerDisplay.style.display = 'none';
+        function init() {
+            gameTimeSettingDisplay.textContent = `${gameTime} 秒`;
+            timerDisplay.style.display = 'none';
+            displayLeaderboard();
+        }
 
+        init();
     </script>
 </body>
 </html>
