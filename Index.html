@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>超級點點樂！</title>
+    <style>
+        :root {
+            --player1-bg: #4a90e2;
+            --player2-bg: #f5a623;
+            --text-color: #ffffff;
+            --font-family: 'Arial', 'Microsoft JhengHei', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #333;
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        .game-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .player-zone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            transition: transform 0.1s ease;
+            user-select: none; /* 防止文字被選取 */
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            cursor: pointer;
+        }
+
+        #player1-zone { background-color: var(--player1-bg); }
+        #player2-zone { background-color: var(--player2-bg); }
+
+        .player-zone:active {
+            transform: scale(0.98);
+        }
+
+        .score {
+            font-size: 5rem;
+            font-weight: bold;
+            margin-top: 20px;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .player-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .game-controls {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 30px;
+            border-radius: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .game-controls.hidden {
+            display: none;
+        }
+
+        #start-btn, .control-btn, #play-again-btn {
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            font-family: var(--font-family);
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        #start-btn:hover, .control-btn:hover, #play-again-btn:hover {
+            background-color: #45a049;
+        }
+
+        .timer-setup {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.8rem;
+        }
+
+        .control-btn {
+            font-size: 1.8rem;
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            line-height: 50px;
+            text-align: center;
+            background-color: #e27d4a;
+        }
+        .control-btn:hover {
+            background-color: #d16c39;
+        }
+        
+        #game-time-setting {
+            width: 80px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        #timer-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            font-weight: bold;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px 25px;
+            border-radius: 15px;
+            z-index: 5;
+            transition: transform 0.2s, color 0.2s;
+        }
+
+        .countdown-animation {
+            animation: pulse 1s infinite;
+            color: #ff4d4d !important;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1) translateX(-50%); }
+            50% { transform: scale(1.2) translateX(-50%); }
+            100% { transform: scale(1) translateX(-50%); }
+        }
+
+        #end-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 20;
+            display: none; /* Changed from flex to none */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        #end-screen.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        #result-message {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #encouragement {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+        
+        #final-scores {
+            font-size: 2rem;
+            margin-bottom: 40px;
+        }
+
+        /* 慶祝動畫 */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0.8;
+            border-radius: 50%;
+            animation: fall 3s linear forwards;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <!-- 玩家1區域 -->
+        <div id="player1-zone" class="player-zone">
+            <div class="player-name">玩家一</div>
+            <div id="score1" class="score">0</div>
+        </div>
+        <!-- 玩家2區域 -->
+        <div id="player2-zone" class="player-zone">
+            <div class="player-name">玩家二</div>
+            <div id="score2" class="score">0</div>
+        </div>
+    </div>
+
+    <!-- 遊戲設定 -->
+    <div id="game-controls" class="game-controls">
+        <h1>超級點點樂！</h1>
+        <div class="timer-setup">
+            <button id="decrease-time" class="control-btn">-</button>
+            <div id="game-time-setting">60 秒</div>
+            <button id="increase-time" class="control-btn">+</button>
+        </div>
+        <button id="start-btn">開始遊戲</button>
+    </div>
+
+    <!-- 遊戲中的計時器 -->
+    <div id="timer-display"></div>
+
+    <!-- 遊戲結束畫面 -->
+    <div id="end-screen">
+        <div id="result-message"></div>
+        <div id="final-scores"></div>
+        <div id="encouragement"></div>
+        <button id="play-again-btn">再玩一次</button>
+    </div>
+
+
+    <script>
+        // --- DOM 元素 ---
+        const player1Zone = document.getElementById('player1-zone');
+        const player2Zone = document.getElementById('player2-zone');
+        const score1Display = document.getElementById('score1');
+        const score2Display = document.getElementById('score2');
+        const gameControls = document.getElementById('game-controls');
+        const startBtn = document.getElementById('start-btn');
+        const timerDisplay = document.getElementById('timer-display');
+        const endScreen = document.getElementById('end-screen');
+        const resultMessage = document.getElementById('result-message');
+        const finalScoresDisplay = document.getElementById('final-scores');
+        const encouragementDisplay = document.getElementById('encouragement');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const increaseTimeBtn = document.getElementById('increase-time');
+        const decreaseTimeBtn = document.getElementById('decrease-time');
+        const gameTimeSettingDisplay = document.getElementById('game-time-setting');
+
+        // --- 遊戲狀態變數 ---
+        let score1 = 0;
+        let score2 = 0;
+        let gameTime = 60; // 預設遊戲時間 (秒)
+        let timeLeft = 0;
+        let timerInterval = null;
+        let isGameActive = false;
+        
+        // --- 音效處理 ---
+        let audioContext;
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.error("Web Audio API is not supported in this browser");
+        }
+
+        function playSound(type) {
+            if (!audioContext) return;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+
+            if (type === 'countdown') {
+                oscillator.type = 'triangle';
+                oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.3);
+            } else if (type === 'end') {
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.8);
+            } else if (type === 'start') {
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime); // C4
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.5);
+            }
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 1);
+        }
+        
+        // --- 事件監聽 ---
+        startBtn.addEventListener('click', startGame);
+        playAgainBtn.addEventListener('click', resetGame);
+        increaseTimeBtn.addEventListener('click', () => changeTime(5));
+        decreaseTimeBtn.addEventListener('click', () => changeTime(-5));
+        
+        function handlePlayerClick(playerNumber) {
+            if (!isGameActive) return;
+            if (playerNumber === 1) {
+                score1++;
+                score1Display.textContent = score1;
+            } else {
+                score2++;
+                score2Display.textContent = score2;
+            }
+        }
+        
+        // 使用 touchstart 優先，以降低延遲，並用 mousedown 作為備用
+        player1Zone.addEventListener('touchstart', (e) => { e.preventDefault(); handlePlayerClick(1); });
+        player1Zone.addEventListener('mousedown', (e) => { e.preventDefault(); handlePlayerClick(1); });
+        player2Zone.addEventListener('touchstart', (e) => { e.preventDefault(); handlePlayerClick(2); });
+        player2Zone.addEventListener('mousedown', (e) => { e.preventDefault(); handlePlayerClick(2); });
+
+
+        // --- 遊戲邏輯函式 ---
+
+        function changeTime(seconds) {
+            if (isGameActive) return;
+            gameTime += seconds;
+            if (gameTime < 10) gameTime = 10; // 最少10秒
+            if (gameTime > 300) gameTime = 300; // 最多5分鐘
+            updateGameTimeDisplay();
+        }
+
+        function updateGameTimeDisplay() {
+            gameTimeSettingDisplay.textContent = `${gameTime} 秒`;
+        }
+
+        function startGame() {
+            isGameActive = true;
+            score1 = 0;
+            score2 = 0;
+            timeLeft = gameTime;
+
+            score1Display.textContent = 0;
+            score2Display.textContent = 0;
+            timerDisplay.textContent = timeLeft;
+            timerDisplay.classList.remove('countdown-animation');
+
+            gameControls.classList.add('hidden');
+            timerDisplay.style.display = 'block';
+            playSound('start');
+
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            timerDisplay.textContent = timeLeft;
+
+            if (timeLeft <= 10 && timeLeft > 0) {
+                timerDisplay.classList.add('countdown-animation');
+                playSound('countdown');
+            }
+
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            isGameActive = false;
+            playSound('end');
+            
+            timerDisplay.style.display = 'none';
+            timerDisplay.classList.remove('countdown-animation');
+
+            let winnerMsg = '';
+            let encouragement = '';
+            let winnerPlayer = 0;
+
+            const winMessages = ["太厲害了，你是冠軍！", "恭喜獲勝，真是神手速！", "贏了！下次再來挑戰！"];
+            const loseMessages = ["雖敗猶榮，下次會更棒！", "別氣餒，你已經很努力了！", "加油！再挑戰一次吧！"];
+            const tieMessages = ["平手！兩位都超強的！", "哇，真是勢均力敵！", "不分軒輊，再來一場！"];
+            
+            if (score1 > score2) {
+                winnerMsg = '玩家一 獲勝！';
+                winnerPlayer = 1;
+                encouragement = `${winMessages[Math.floor(Math.random() * winMessages.length)]}<br><br>玩家二也別灰心，${loseMessages[Math.floor(Math.random() * loseMessages.length)]}`;
+            } else if (score2 > score1) {
+                winnerMsg = '玩家二 獲勝！';
+                winnerPlayer = 2;
+                encouragement = `${winMessages[Math.floor(Math.random() * winMessages.length)]}<br><br>玩家一也別灰心，${loseMessages[Math.floor(Math.random() * loseMessages.length)]}`;
+            } else {
+                winnerMsg = '平手！';
+                encouragement = tieMessages[Math.floor(Math.random() * tieMessages.length)];
+            }
+            
+            resultMessage.textContent = winnerMsg;
+            finalScoresDisplay.textContent = `玩家一: ${score1} 分 vs 玩家二: ${score2} 分`;
+            encouragementDisplay.innerHTML = encouragement;
+
+            endScreen.classList.add('visible');
+
+            if (winnerPlayer !== 0) {
+                showConfetti();
+            }
+        }
+
+        function resetGame() {
+            endScreen.classList.remove('visible');
+            gameControls.classList.remove('hidden');
+            score1Display.textContent = 0;
+            score2Display.textContent = 0;
+            timerDisplay.textContent = '';
+        }
+        
+        function showConfetti() {
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = -20 + 'px';
+                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.transform = `scale(${Math.random() * 0.5 + 0.5})`;
+                document.body.appendChild(confetti);
+
+                setTimeout(() => {
+                    confetti.remove();
+                }, 4000);
+            }
+        }
+
+        // --- 初始化 ---
+        updateGameTimeDisplay(); // 初始顯示時間
+        timerDisplay.style.display = 'none';
+
+    </script>
+</body>
+</html>
